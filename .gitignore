@@ -1,0 +1,4 @@
+CSFML/
+
+zig-out/
+.zig-cache/
