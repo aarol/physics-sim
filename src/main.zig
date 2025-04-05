@@ -33,16 +33,53 @@ pub fn main() !void {
 
     const renderer = Renderer{ .window = window };
 
+    var moving = false;
+    // var zoom: f32 = 1;
+    var old_pos: sf.sfVector2f = undefined;
     // Start the game loop
-    var event: sf.sfEvent = undefined;
+    const view = @constCast(sf.sfRenderWindow_getDefaultView(window));
     while (sf.sfRenderWindow_isOpen(window) != sf.sfFalse) {
-
+        var event: sf.sfEvent = undefined;
         // Process events
         while (sf.sfRenderWindow_pollEvent(window, &event) != sf.sfFalse) {
             // Close window : exit
-            if (event.type == sf.sfEvtClosed) {
-                std.debug.print("Closed\n", .{});
-                sf.sfRenderWindow_close(window);
+            switch (event.type) {
+                sf.sfEvtClosed => {
+                    std.debug.print("Closed\n", .{});
+                    sf.sfRenderWindow_close(window);
+                },
+                sf.sfEvtMouseButtonPressed => {
+                    if (event.mouseButton.button == 0) {
+                        moving = true;
+                        old_pos = sf.sfRenderWindow_mapPixelToCoords(window, sf.sfVector2i{ .x = event.mouseButton.x, .y = event.mouseButton.y }, view);
+                    }
+                },
+                sf.sfEvtMouseButtonReleased => {
+                    if (event.mouseButton.button == 0) {
+                        moving = false;
+                    }
+                },
+                sf.sfEvtMouseMoved => {
+                    if (!moving) break;
+
+                    const v2i = sf.sfVector2i{ .x = event.mouseMove.x, .y = event.mouseMove.y };
+                    const new_pos = sf.sfRenderWindow_mapPixelToCoords(window, v2i, view);
+                    const delta_pos = sf.sfVector2f{ .x = old_pos.x - new_pos.x, .y = old_pos.y - new_pos.y };
+                    std.debug.print("delta {}\n", .{delta_pos});
+                    const curr_center = sf.sfView_getCenter(view);
+                    sf.sfView_setCenter(view, sf.sfVector2f{ .x = curr_center.x + delta_pos.x, .y = curr_center.y + delta_pos.y });
+                    sf.sfRenderWindow_setView(window, view);
+                    old_pos = sf.sfRenderWindow_mapPixelToCoords(window, v2i, view);
+                },
+                sf.sfEvtMouseWheelScrolled => {
+                    if (moving) break;
+
+                    const def_size = sf.sfView_getSize(sf.sfRenderWindow_getDefaultView(window));
+                    sf.sfView_setSize(view, def_size);
+                    sf.sfView_zoom(view, 1.0 + event.mouseWheelScroll.delta * 0.1);
+                    sf.sfRenderWindow_setView(window, view);
+                },
+                else => {},
             }
         }
 
