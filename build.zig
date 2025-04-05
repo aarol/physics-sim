@@ -34,9 +34,10 @@ pub fn build(b: *std.Build) void {
         .root_module = exe_mod,
     });
     exe.linkLibC();
+    if (@import("builtin").os.tag == .windows) {
+        exe.addLibraryPath(b.path("csfml/lib/msvc/"));
+    } else {}
     exe.addIncludePath(b.path("CSFML/include"));
-    exe.addLibraryPath(b.path("csfml/lib/msvc/"));
-
     exe.linkSystemLibrary("csfml-graphics");
     exe.linkSystemLibrary("csfml-system");
     exe.linkSystemLibrary("csfml-window");
