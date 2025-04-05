@@ -22,14 +22,23 @@ pub fn main() !void {
         return;
     }
 
+    // Cleanup resources
+    defer sf.sfRenderWindow_destroy(window);
+
     const size = sf.sfRenderWindow_getSize(window);
     const center = sf.Vec2{ .x = @as(f32, @floatFromInt(size.x)) / 2.0, .y = @as(f32, @floatFromInt(size.y)) / 2.0 };
 
-    var balls = std.ArrayList(*app.Ball).init(std.heap.page_allocator);
+    const balls = std.ArrayList(app.Ball).init(std.heap.page_allocator);
 
-    var ball = app.Ball.new();
-    try balls.append(&ball);
     var solver = app.Solver.new(center, balls);
+
+    var r = std.Random.DefaultPrng.init(0);
+
+    for (0..50) |_| {
+        const f = r.random().float(f32) * 100 - 50;
+        const pos = sf.Vec2{ .x = f, .y = f };
+        try solver.add_ball(app.Ball.new(pos.add(center), pos.add(center)));
+    }
 
     const renderer = Renderer{ .window = window };
 
@@ -76,7 +85,7 @@ pub fn main() !void {
 
                     const def_size = sf.sfView_getSize(sf.sfRenderWindow_getDefaultView(window));
                     sf.sfView_setSize(view, def_size);
-                    sf.sfView_zoom(view, 1.0 + event.mouseWheelScroll.delta * 0.1);
+                    sf.sfView_zoom(view, 1.0 + event.mouseWheelScroll.delta * -0.1);
                     sf.sfRenderWindow_setView(window, view);
                 },
                 else => {},
@@ -86,9 +95,6 @@ pub fn main() !void {
         solver.update(1.0 / 60.0);
         renderer.render(&solver);
     }
-
-    // Cleanup resources
-    sf.sfRenderWindow_destroy(window);
 
     return;
 }
@@ -115,11 +121,12 @@ const Renderer = struct {
         const circle = sf.sfCircleShape_create();
         defer sf.sfCircleShape_destroy(circle);
         sf.sfCircleShape_setFillColor(circle, sf.sfColor_fromRGB(255, 255, 255));
-        sf.sfCircleShape_setPointCount(circle, 10);
+        sf.sfCircleShape_setPointCount(circle, 32);
 
         for (solver.balls.items) |ball| {
             sf.sfCircleShape_setOrigin(circle, sf.sfVector2f{ .x = ball.radius, .y = ball.radius });
             sf.sfCircleShape_setPosition(circle, @bitCast(ball.curr_pos));
+
             sf.sfCircleShape_setRadius(circle, ball.radius);
             sf.sfRenderWindow_drawCircleShape(window, circle, null);
         }

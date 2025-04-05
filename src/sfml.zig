@@ -31,4 +31,7 @@ pub const Vec2 = extern struct {
     pub fn length(self: Vec2) f32 {
         return std.math.sqrt(self.x * self.x + self.y * self.y);
     }
+    pub fn length_squared(self: Vec2) f32 {
+        return self.x * self.x + self.y * self.y;
+    }
 };
