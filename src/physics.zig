@@ -8,7 +8,7 @@ pub const Ball = struct {
     acceleration: sf.Vec2 = .{ .x = 0, .y = 100 },
     color: sf.sfColor,
 
-    pub const radius: f32 = 10;
+    pub const radius: f32 = 5;
 
     pub fn new(curr_pos: sf.Vec2, last_pos: sf.Vec2, color: sf.sfColor) Ball {
         return .{

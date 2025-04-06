@@ -30,8 +30,6 @@ pub fn main() !void {
 
     var solver = physics.Solver.new(center, balls);
 
-    // var rand = std.Random.DefaultPrng.init(0);
-
     const renderer = render.Renderer{ .window = window };
 
     var moving = false;
@@ -88,14 +86,13 @@ pub fn main() !void {
         }
 
         const elapsed = sf.sfClock_getElapsedTime(spawn_clock);
-        if (sf.sfTime_asMilliseconds(elapsed) > 100) {
+        if (sf.sfTime_asMilliseconds(elapsed) > 16) {
             _ = sf.sfClock_restart(spawn_clock);
             const since_start = sf.sfClock_getElapsedTime(elapsed_clock);
             const seconds = sf.sfTime_asSeconds(since_start);
 
-            // const f = rand.random().float(f32) * 100 - 50;
             const pos = sf.Vec2{ .x = 0, .y = 0 };
-            const before_pos = sf.Vec2{ .x = -10, .y = 0 };
+            const before_pos = sf.Vec2{ .x = 0.1, .y = -10 };
             const color = render.hslToRgb(@mod(seconds / 50.0, 1.0), 0.75, 0.5);
             try solver.add_ball(physics.Ball.new(pos.add(center), before_pos.add(center), color));
         }
