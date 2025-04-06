@@ -34,15 +34,19 @@ pub fn build(b: *std.Build) void {
         .root_module = exe_mod,
     });
 
+    exe.linkLibC();
+    exe.addIncludePath(b.path("CSFML/include"));
+
     switch (@import("builtin").os.tag) {
-        .linux => {
-            exe.linkLibC();
-        },
+        .linux => {},
         .windows => {
             exe.addLibraryPath(b.path("csfml/lib/msvc/"));
-            b.installFile("CSFML/bin/csfml-graphics-2.dll", "./bin/csfml-graphics-2.dll");
-            b.installFile("CSFML/bin/csfml-system-2.dll", "./bin/csfml-system-2.dll");
-            b.installFile("CSFML/bin/csfml-window-2.dll", "./bin/csfml-window-2.dll");
+            b.installFile("CSFML/bin/csfml-graphics-3.dll", "./bin/csfml-graphics-3.dll");
+            b.installFile("CSFML/bin/csfml-system-3.dll", "./bin/csfml-system-3.dll");
+            b.installFile("CSFML/bin/csfml-window-3.dll", "./bin/csfml-window-3.dll");
+            b.installFile("SFML/bin/sfml-graphics-3.dll", "./bin/sfml-graphics-3.dll");
+            b.installFile("SFML/bin/sfml-system-3.dll", "./bin/sfml-system-3.dll");
+            b.installFile("SFML/bin/sfml-window-3.dll", "./bin/sfml-window-3.dll");
         },
         else => {},
     }

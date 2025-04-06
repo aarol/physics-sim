@@ -10,8 +10,6 @@ const physics = @import("physics.zig");
 const render = @import("render.zig");
 
 pub fn main() !void {
-    std.debug.print("hre", .{});
-
     const mode = sf.sfVideoMode{
         .size = .{ .x = 800, .y = 800 },
         .bitsPerPixel = 32,
@@ -32,19 +30,17 @@ pub fn main() !void {
 
     var solver = physics.Solver.new(center, balls);
 
-    var rand = std.Random.DefaultPrng.init(0);
-
-    for (0..50) |_| {
-        const f = rand.random().float(f32) * 100 - 50;
-        const pos = sf.Vec2{ .x = f, .y = f };
-        const color = render.random_color(&rand);
-        try solver.add_ball(physics.Ball.new(pos.add(center), pos.add(center), color));
-    }
+    // var rand = std.Random.DefaultPrng.init(0);
 
     const renderer = render.Renderer{ .window = window };
 
     var moving = false;
     var old_pos: sf.sfVector2f = undefined;
+
+    const spawn_clock = sf.sfClock_create();
+    defer sf.sfClock_destroy(spawn_clock);
+    const elapsed_clock = sf.sfClock_create();
+    defer sf.sfClock_destroy(elapsed_clock);
 
     // Start the game loop
     const view = @constCast(sf.sfRenderWindow_getDefaultView(window));
@@ -74,7 +70,6 @@ pub fn main() !void {
 
                     const new_pos = sf.sfRenderWindow_mapPixelToCoords(window, event.mouseMove.position, view);
                     const delta_pos = .{ .x = old_pos.x - new_pos.x, .y = old_pos.y - new_pos.y };
-                    std.debug.print("delta {}\n", .{delta_pos});
                     const curr_center = sf.sfView_getCenter(view);
                     sf.sfView_setCenter(view, .{ .x = curr_center.x + delta_pos.x, .y = curr_center.y + delta_pos.y });
                     sf.sfRenderWindow_setView(window, view);
@@ -90,6 +85,19 @@ pub fn main() !void {
                 },
                 else => {},
             }
+        }
+
+        const elapsed = sf.sfClock_getElapsedTime(spawn_clock);
+        if (sf.sfTime_asMilliseconds(elapsed) > 100) {
+            _ = sf.sfClock_restart(spawn_clock);
+            const since_start = sf.sfClock_getElapsedTime(elapsed_clock);
+            const seconds = sf.sfTime_asSeconds(since_start);
+
+            // const f = rand.random().float(f32) * 100 - 50;
+            const pos = sf.Vec2{ .x = 0, .y = 0 };
+            const before_pos = sf.Vec2{ .x = -10, .y = 0 };
+            const color = render.hslToRgb(@mod(seconds / 50.0, 1.0), 0.75, 0.5);
+            try solver.add_ball(physics.Ball.new(pos.add(center), before_pos.add(center), color));
         }
 
         solver.update(1.0 / 60.0);
