@@ -30,7 +30,7 @@ pub const Solver = struct {
     sub_steps: u32 = 1,
 
     pub fn new(center: sf.Vec2, balls: std.ArrayList(Ball)) Solver {
-        return Solver{ .constraint_center = center, .contraint_radius = 100, .balls = balls };
+        return Solver{ .constraint_center = center, .contraint_radius = 300, .balls = balls };
     }
 
     pub fn add_ball(self: *Solver, ball: Ball) !void {

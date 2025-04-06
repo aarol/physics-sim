@@ -33,11 +33,21 @@ pub fn build(b: *std.Build) void {
         .name = "physics_sim",
         .root_module = exe_mod,
     });
-    exe.linkLibC();
-    if (@import("builtin").os.tag == .windows) {
-        exe.addLibraryPath(b.path("csfml/lib/msvc/"));
-    } else {}
-    exe.addIncludePath(b.path("CSFML/include"));
+
+    switch (@import("builtin").os.tag) {
+        .linux => {
+            exe.linkLibC();
+        },
+        .windows => {
+            exe.addIncludePath(b.path("csfml/include"));
+            exe.addLibraryPath(b.path("csfml/lib/msvc/"));
+            b.installFile("CSFML/bin/csfml-graphics-2.dll", "./bin/csfml-graphics-2.dll");
+            b.installFile("CSFML/bin/csfml-system-2.dll", "./bin/csfml-system-2.dll");
+            b.installFile("CSFML/bin/csfml-window-2.dll", "./bin/csfml-window-2.dll");
+        },
+        else => {},
+    }
+
     exe.linkSystemLibrary("csfml-graphics");
     exe.linkSystemLibrary("csfml-system");
     exe.linkSystemLibrary("csfml-window");

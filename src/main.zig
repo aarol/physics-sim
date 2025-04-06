@@ -110,8 +110,8 @@ const Renderer = struct {
         {
             const background = sf.sfCircleShape_create();
             defer sf.sfCircleShape_destroy(background);
-            sf.sfCircleShape_setFillColor(background, sf.sfColor_fromRGB(100, 100, 100));
-            sf.sfCircleShape_setPointCount(background, 32);
+            sf.sfCircleShape_setFillColor(background, sf.sfColor_fromRGB(50, 50, 50));
+            sf.sfCircleShape_setPointCount(background, 64);
             sf.sfCircleShape_setRadius(background, solver.contraint_radius);
             sf.sfCircleShape_setOrigin(background, sf.sfVector2f{ .x = solver.contraint_radius, .y = solver.contraint_radius });
             sf.sfCircleShape_setPosition(background, @bitCast(solver.constraint_center));
@@ -120,7 +120,7 @@ const Renderer = struct {
 
         const circle = sf.sfCircleShape_create();
         defer sf.sfCircleShape_destroy(circle);
-        sf.sfCircleShape_setFillColor(circle, sf.sfColor_fromRGB(255, 255, 255));
+        sf.sfCircleShape_setFillColor(circle, sf.sfWhite);
         sf.sfCircleShape_setPointCount(circle, 32);
 
         for (solver.balls.items) |ball| {
