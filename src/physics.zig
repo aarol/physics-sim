@@ -5,13 +5,16 @@ const sf = @import("sfml.zig");
 pub const Ball = struct {
     curr_pos: sf.Vec2 = .{ .x = 0, .y = 0 },
     last_pos: sf.Vec2 = .{ .x = 0, .y = 0 },
-    acceleration: sf.Vec2 = .{ .x = 0, .y = 1 },
-    radius: f32 = 10,
+    acceleration: sf.Vec2 = .{ .x = 0, .y = 100 },
+    color: sf.sfColor,
 
-    pub fn new(curr_pos: sf.Vec2, last_pos: sf.Vec2) Ball {
-        return Ball{
+    pub const radius: f32 = 10;
+
+    pub fn new(curr_pos: sf.Vec2, last_pos: sf.Vec2, color: sf.sfColor) Ball {
+        return .{
             .curr_pos = curr_pos,
             .last_pos = last_pos,
+            .color = color,
         };
     }
 
@@ -30,7 +33,7 @@ pub const Solver = struct {
     sub_steps: u32 = 1,
 
     pub fn new(center: sf.Vec2, balls: std.ArrayList(Ball)) Solver {
-        return Solver{ .constraint_center = center, .contraint_radius = 300, .balls = balls };
+        return .{ .constraint_center = center, .contraint_radius = 300, .balls = balls };
     }
 
     pub fn add_ball(self: *Solver, ball: Ball) !void {
@@ -49,9 +52,9 @@ pub const Solver = struct {
         for (self.balls.items) |*ball| {
             const v = self.constraint_center.sub(ball.curr_pos);
             const dist = v.length();
-            if (dist > (self.contraint_radius - ball.radius)) {
+            if (dist > (self.contraint_radius - Ball.radius)) {
                 const n = v.div_f32(dist);
-                ball.curr_pos = self.constraint_center.sub(n.mul_f32(self.contraint_radius - ball.radius));
+                ball.curr_pos = self.constraint_center.sub(n.mul_f32(self.contraint_radius - Ball.radius));
             }
         }
     }
@@ -65,13 +68,13 @@ pub const Solver = struct {
                 const object2 = &self.balls.items[k];
                 const v = object1.curr_pos.sub(object2.curr_pos);
                 const dist2 = v.length_squared();
-                const min_dist = object1.radius + object2.radius;
+                const min_dist = 2 * Ball.radius;
 
                 if (dist2 < min_dist * min_dist) {
                     const dist = v.length();
                     const n = v.div_f32(dist);
-                    const mass_ratio_1 = object1.radius / (object1.radius + object2.radius);
-                    const mass_ratio_2 = object2.radius / (object1.radius + object2.radius);
+                    const mass_ratio_1 = 0.5;
+                    const mass_ratio_2 = 0.5;
                     const delta = 0.5 * response_coef * (dist - min_dist);
 
                     object1.curr_pos = object1.curr_pos.sub(n.mul_f32(mass_ratio_2 * delta));

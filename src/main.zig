@@ -6,18 +6,17 @@ const std = @import("std");
 
 const sf = @import("sfml.zig");
 
-const app = @import("game.zig");
+const physics = @import("physics.zig");
+const render = @import("render.zig");
 
 pub fn main() !void {
     std.debug.print("hre", .{});
 
     const mode = sf.sfVideoMode{
-        .width = 800,
-        .height = 600,
+        .size = .{ .x = 800, .y = 800 },
         .bitsPerPixel = 32,
     };
-    const settings: [*c]const sf.sfContextSettings = null;
-    const window = sf.sfRenderWindow_create(mode, "SFML window", sf.sfResize | sf.sfClose, settings);
+    const window = sf.sfRenderWindow_create(mode, "Physics sim", sf.sfClose | sf.sfResize, sf.sfWindowed, null);
     if (window == null) {
         return;
     }
@@ -26,31 +25,33 @@ pub fn main() !void {
     defer sf.sfRenderWindow_destroy(window);
 
     const size = sf.sfRenderWindow_getSize(window);
+    sf.sfRenderWindow_setVerticalSyncEnabled(window, true);
     const center = sf.Vec2{ .x = @as(f32, @floatFromInt(size.x)) / 2.0, .y = @as(f32, @floatFromInt(size.y)) / 2.0 };
 
-    const balls = std.ArrayList(app.Ball).init(std.heap.page_allocator);
+    const balls = std.ArrayList(physics.Ball).init(std.heap.page_allocator);
 
-    var solver = app.Solver.new(center, balls);
+    var solver = physics.Solver.new(center, balls);
 
-    var r = std.Random.DefaultPrng.init(0);
+    var rand = std.Random.DefaultPrng.init(0);
 
     for (0..50) |_| {
-        const f = r.random().float(f32) * 100 - 50;
+        const f = rand.random().float(f32) * 100 - 50;
         const pos = sf.Vec2{ .x = f, .y = f };
-        try solver.add_ball(app.Ball.new(pos.add(center), pos.add(center)));
+        const color = render.random_color(&rand);
+        try solver.add_ball(physics.Ball.new(pos.add(center), pos.add(center), color));
     }
 
-    const renderer = Renderer{ .window = window };
+    const renderer = render.Renderer{ .window = window };
 
     var moving = false;
-    // var zoom: f32 = 1;
     var old_pos: sf.sfVector2f = undefined;
+
     // Start the game loop
     const view = @constCast(sf.sfRenderWindow_getDefaultView(window));
-    while (sf.sfRenderWindow_isOpen(window) != sf.sfFalse) {
+    while (sf.sfRenderWindow_isOpen(window)) {
         var event: sf.sfEvent = undefined;
         // Process events
-        while (sf.sfRenderWindow_pollEvent(window, &event) != sf.sfFalse) {
+        while (sf.sfRenderWindow_pollEvent(window, &event)) {
             // Close window : exit
             switch (event.type) {
                 sf.sfEvtClosed => {
@@ -60,7 +61,7 @@ pub fn main() !void {
                 sf.sfEvtMouseButtonPressed => {
                     if (event.mouseButton.button == 0) {
                         moving = true;
-                        old_pos = sf.sfRenderWindow_mapPixelToCoords(window, sf.sfVector2i{ .x = event.mouseButton.x, .y = event.mouseButton.y }, view);
+                        old_pos = sf.sfRenderWindow_mapPixelToCoords(window, event.mouseButton.position, view);
                     }
                 },
                 sf.sfEvtMouseButtonReleased => {
@@ -71,14 +72,13 @@ pub fn main() !void {
                 sf.sfEvtMouseMoved => {
                     if (!moving) break;
 
-                    const v2i = sf.sfVector2i{ .x = event.mouseMove.x, .y = event.mouseMove.y };
-                    const new_pos = sf.sfRenderWindow_mapPixelToCoords(window, v2i, view);
-                    const delta_pos = sf.sfVector2f{ .x = old_pos.x - new_pos.x, .y = old_pos.y - new_pos.y };
+                    const new_pos = sf.sfRenderWindow_mapPixelToCoords(window, event.mouseMove.position, view);
+                    const delta_pos = .{ .x = old_pos.x - new_pos.x, .y = old_pos.y - new_pos.y };
                     std.debug.print("delta {}\n", .{delta_pos});
                     const curr_center = sf.sfView_getCenter(view);
-                    sf.sfView_setCenter(view, sf.sfVector2f{ .x = curr_center.x + delta_pos.x, .y = curr_center.y + delta_pos.y });
+                    sf.sfView_setCenter(view, .{ .x = curr_center.x + delta_pos.x, .y = curr_center.y + delta_pos.y });
                     sf.sfRenderWindow_setView(window, view);
-                    old_pos = sf.sfRenderWindow_mapPixelToCoords(window, v2i, view);
+                    old_pos = sf.sfRenderWindow_mapPixelToCoords(window, event.mouseMove.position, view);
                 },
                 sf.sfEvtMouseWheelScrolled => {
                     if (moving) break;
@@ -98,40 +98,3 @@ pub fn main() !void {
 
     return;
 }
-
-const Renderer = struct {
-    window: ?*sf.sfRenderWindow,
-
-    pub fn render(self: Renderer, solver: *app.Solver) void {
-        const window = self.window;
-        // Clear the screen
-        sf.sfRenderWindow_clear(window, sf.sfBlack);
-
-        {
-            const background = sf.sfCircleShape_create();
-            defer sf.sfCircleShape_destroy(background);
-            sf.sfCircleShape_setFillColor(background, sf.sfColor_fromRGB(50, 50, 50));
-            sf.sfCircleShape_setPointCount(background, 64);
-            sf.sfCircleShape_setRadius(background, solver.contraint_radius);
-            sf.sfCircleShape_setOrigin(background, sf.sfVector2f{ .x = solver.contraint_radius, .y = solver.contraint_radius });
-            sf.sfCircleShape_setPosition(background, @bitCast(solver.constraint_center));
-            sf.sfRenderWindow_drawCircleShape(window, background, null);
-        }
-
-        const circle = sf.sfCircleShape_create();
-        defer sf.sfCircleShape_destroy(circle);
-        sf.sfCircleShape_setFillColor(circle, sf.sfWhite);
-        sf.sfCircleShape_setPointCount(circle, 32);
-
-        for (solver.balls.items) |ball| {
-            sf.sfCircleShape_setOrigin(circle, sf.sfVector2f{ .x = ball.radius, .y = ball.radius });
-            sf.sfCircleShape_setPosition(circle, @bitCast(ball.curr_pos));
-
-            sf.sfCircleShape_setRadius(circle, ball.radius);
-            sf.sfRenderWindow_drawCircleShape(window, circle, null);
-        }
-
-        // Update the window
-        sf.sfRenderWindow_display(window);
-    }
-};

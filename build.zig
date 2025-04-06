@@ -39,7 +39,6 @@ pub fn build(b: *std.Build) void {
             exe.linkLibC();
         },
         .windows => {
-            exe.addIncludePath(b.path("csfml/include"));
             exe.addLibraryPath(b.path("csfml/lib/msvc/"));
             b.installFile("CSFML/bin/csfml-graphics-2.dll", "./bin/csfml-graphics-2.dll");
             b.installFile("CSFML/bin/csfml-system-2.dll", "./bin/csfml-system-2.dll");
