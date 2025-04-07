@@ -11,7 +11,7 @@ const render = @import("render.zig");
 
 pub fn main() !void {
     const mode = sf.sfVideoMode{
-        .size = .{ .x = 800, .y = 800 },
+        .size = physics.WORLD_SIZE,
         .bitsPerPixel = 32,
     };
     const window = sf.sfRenderWindow_create(mode, "Physics sim", sf.sfClose | sf.sfResize, sf.sfWindowed, null);
@@ -27,8 +27,8 @@ pub fn main() !void {
     const center = sf.Vec2{ .x = @as(f32, @floatFromInt(size.x)) / 2.0, .y = @as(f32, @floatFromInt(size.y)) / 2.0 };
 
     const balls = std.ArrayList(physics.Ball).init(std.heap.page_allocator);
-
-    var solver = physics.Solver.new(center, balls);
+    defer balls.deinit();
+    var solver = physics.Solver.new(balls);
 
     const renderer = render.Renderer{ .window = window };
 
@@ -86,7 +86,7 @@ pub fn main() !void {
         }
 
         const elapsed = sf.sfClock_getElapsedTime(spawn_clock);
-        if (sf.sfTime_asMilliseconds(elapsed) > 16) {
+        if (sf.sfTime_asMilliseconds(elapsed) > 100) {
             _ = sf.sfClock_restart(spawn_clock);
             const since_start = sf.sfClock_getElapsedTime(elapsed_clock);
             const seconds = sf.sfTime_asSeconds(since_start);

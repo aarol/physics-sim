@@ -17,7 +17,7 @@ pub const Renderer = struct {
             sf.sfCircleShape_setPointCount(background, 64);
             sf.sfCircleShape_setRadius(background, solver.contraint_radius);
             sf.sfCircleShape_setOrigin(background, .{ .x = solver.contraint_radius, .y = solver.contraint_radius });
-            sf.sfCircleShape_setPosition(background, @bitCast(solver.constraint_center));
+            sf.sfCircleShape_setPosition(background, @bitCast(physics.CENTER));
             sf.sfRenderWindow_drawCircleShape(window, background, null);
         }
 

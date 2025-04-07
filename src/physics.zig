@@ -8,7 +8,7 @@ pub const Ball = struct {
     acceleration: sf.Vec2 = .{ .x = 0, .y = 100 },
     color: sf.sfColor,
 
-    pub const radius: f32 = 5;
+    pub const radius: f32 = 6;
 
     pub fn new(curr_pos: sf.Vec2, last_pos: sf.Vec2, color: sf.sfColor) Ball {
         return .{
@@ -26,21 +26,41 @@ pub const Ball = struct {
     }
 };
 
+pub const WORLD_SIZE = sf.sfVector2u{ .x = 600, .y = 600 };
+pub const CENTER = sf.Vec2{ .x = WORLD_SIZE.x / 2, .y = WORLD_SIZE.y / 2 };
+const GRID_SIZE: u32 = WORLD_SIZE.x / @as(u32, @intFromFloat(Ball.radius / 2));
+
 pub const Solver = struct {
-    constraint_center: sf.Vec2,
-    contraint_radius: f32,
+    contraint_radius: f32 = 300,
     balls: std.ArrayList(Ball),
     sub_steps: u32 = 1,
+    grid: [GRID_SIZE * GRID_SIZE]i32 = undefined,
 
-    pub fn new(center: sf.Vec2, balls: std.ArrayList(Ball)) Solver {
-        return .{ .constraint_center = center, .contraint_radius = 300, .balls = balls };
+    pub fn new(balls: std.ArrayList(Ball)) Solver {
+        return .{ .balls = balls };
     }
 
     pub fn add_ball(self: *Solver, ball: Ball) !void {
         try self.balls.append(ball);
     }
 
+    pub fn fill_grid(self: *Solver) void {
+        for (self.balls.items, 0..) |ball, i| {
+            const x = @as(u32, @intFromFloat(ball.curr_pos.x)) / GRID_SIZE;
+            const y = @as(u32, @intFromFloat(ball.curr_pos.y)) / GRID_SIZE;
+            const idx = y * GRID_SIZE + x;
+            if (self.grid[idx] != -1) {
+                std.debug.panic("anotha one {}, {} [{}]={} i: {}\n", .{ x, y, idx, self.grid[idx], i });
+            }
+            std.debug.print("pos {} set {} to {}\n", .{ ball.curr_pos, idx, i });
+            self.grid[idx] = @intCast(i);
+        }
+    }
+
     pub fn update(self: *Solver, dt: f32) void {
+        @memset(&self.grid, -1);
+        self.fill_grid();
+
         for (self.balls.items) |*ball| {
             ball.update(dt);
         }
@@ -50,11 +70,11 @@ pub const Solver = struct {
 
     pub fn apply_constraint(self: *Solver) void {
         for (self.balls.items) |*ball| {
-            const v = self.constraint_center.sub(ball.curr_pos);
+            const v = CENTER.sub(ball.curr_pos);
             const dist = v.length();
             if (dist > (self.contraint_radius - Ball.radius)) {
                 const n = v.div_f32(dist);
-                ball.curr_pos = self.constraint_center.sub(n.mul_f32(self.contraint_radius - Ball.radius));
+                ball.curr_pos = CENTER.sub(n.mul_f32(self.contraint_radius - Ball.radius));
             }
         }
     }
