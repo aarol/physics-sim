@@ -15,8 +15,8 @@ pub const Renderer = struct {
             defer sf.sfCircleShape_destroy(background);
             sf.sfCircleShape_setFillColor(background, sf.sfColor_fromRGB(50, 50, 50));
             sf.sfCircleShape_setPointCount(background, 64);
-            sf.sfCircleShape_setRadius(background, solver.contraint_radius);
-            sf.sfCircleShape_setOrigin(background, .{ .x = solver.contraint_radius, .y = solver.contraint_radius });
+            sf.sfCircleShape_setRadius(background, physics.CONSTRAINT_RADIUS);
+            sf.sfCircleShape_setOrigin(background, .{ .x = physics.CONSTRAINT_RADIUS, .y = physics.CONSTRAINT_RADIUS });
             sf.sfCircleShape_setPosition(background, @bitCast(physics.CENTER));
             sf.sfRenderWindow_drawCircleShape(window, background, null);
         }
@@ -30,7 +30,9 @@ pub const Renderer = struct {
 
         for (solver.balls.items) |ball| {
             sf.sfCircleShape_setPosition(circle, @bitCast(ball.curr_pos));
-            sf.sfCircleShape_setFillColor(circle, ball.color);
+            const idx = physics.Solver.grid_pos(ball);
+            const col = hslToRgb(@mod(@as(f32, @floatFromInt(idx)) / 10.0, 1.0), 0.75, 0.5);
+            sf.sfCircleShape_setFillColor(circle, col);
             sf.sfRenderWindow_drawCircleShape(window, circle, null);
         }
 
@@ -38,14 +40,6 @@ pub const Renderer = struct {
         sf.sfRenderWindow_display(window);
     }
 };
-
-pub fn random_color(rand: *std.Random.Xoshiro256) sf.sfColor {
-    const r = rand.random().uintAtMost(u8, 255);
-    const g = rand.random().uintAtMost(u8, 255);
-    const b = rand.random().uintAtMost(u8, 255);
-
-    return sf.sfColor_fromRGB(r, g, b);
-}
 
 pub fn hslToRgb(h: f32, s: f32, l: f32) sf.sfColor {
     var r: f32 = 0.0;
