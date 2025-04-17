@@ -34,4 +34,8 @@ pub const Vec2 = extern struct {
     pub fn length_squared(self: Vec2) f32 {
         return self.x * self.x + self.y * self.y;
     }
+
+    pub fn normalized(self: Vec2) Vec2 {
+        return self.div_f32(self.length());
+    }
 };

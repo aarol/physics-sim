@@ -22,16 +22,14 @@ pub fn main() !void {
     // Cleanup resources
     defer sf.sfRenderWindow_destroy(window);
 
-    const size = sf.sfRenderWindow_getSize(window);
     sf.sfRenderWindow_setVerticalSyncEnabled(window, true);
-    const center = sf.Vec2{ .x = @as(f32, @floatFromInt(size.x)) / 2.0, .y = @as(f32, @floatFromInt(size.y)) / 2.0 };
 
     const balls = std.ArrayList(physics.Ball).init(std.heap.page_allocator);
     defer balls.deinit();
     var solver = physics.Solver.new(balls);
 
-    const renderer = render.Renderer{ .window = window };
-
+    const renderer = render.Renderer.init(window);
+    defer renderer.deinit();
     var moving = false;
     var old_pos: sf.sfVector2f = undefined;
 
@@ -86,15 +84,18 @@ pub fn main() !void {
         }
 
         const elapsed = sf.sfClock_getElapsedTime(spawn_clock);
-        if (sf.sfTime_asMilliseconds(elapsed) > 1000) {
+        if (sf.sfTime_asMilliseconds(elapsed) > 10) {
             _ = sf.sfClock_restart(spawn_clock);
             const since_start = sf.sfClock_getElapsedTime(elapsed_clock);
             const seconds = sf.sfTime_asSeconds(since_start);
 
             const pos = sf.Vec2{ .x = 0, .y = 0 };
-            const before_pos = sf.Vec2{ .x = 0.1, .y = -1 };
+            const before_pos = sf.Vec2{ .x = 0.1, .y = -2 };
             const color = render.hslToRgb(@mod(seconds / 50.0, 1.0), 0.75, 0.5);
-            try solver.add_ball(physics.Ball.new(pos.add(center), before_pos.add(center), color));
+            try solver.add_ball(physics.Ball.new(pos.add(physics.CENTER), before_pos.add(physics.CENTER), color));
+            const pos2 = sf.Vec2{ .x = 10, .y = 0 };
+            const before_pos2 = sf.Vec2{ .x = 10.1, .y = -2 };
+            try solver.add_ball(physics.Ball.new(pos2.add(physics.CENTER), before_pos2.add(physics.CENTER), color));
         }
 
         solver.update(1.0 / 60.0);
