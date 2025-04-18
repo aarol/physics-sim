@@ -2,11 +2,20 @@ const std = @import("std");
 const sf = @import("sfml.zig");
 const physics = @import("physics.zig");
 
+const fontFile = @embedFile("arial.ttf");
+
 pub const Renderer = struct {
     window: ?*sf.sfRenderWindow,
     circleShape: ?*sf.sfCircleShape,
     gridShape: ?*sf.sfRectangleShape,
     backgroundShape: ?*sf.sfCircleShape,
+    font: ?*sf.sfFont,
+    countTextShape: ?*sf.sfText,
+    countText: [16]u8,
+    fpsTextShape: ?*sf.sfText,
+    fpsText: [128]u8,
+    frametimeClock: ?*sf.sfClock,
+    showDebug: bool = false,
 
     pub fn init(window: ?*sf.sfRenderWindow) Renderer {
         const background = sf.sfCircleShape_create();
@@ -28,11 +37,27 @@ pub const Renderer = struct {
         sf.sfRectangleShape_setOutlineColor(grid, sf.sfBlue);
         sf.sfRectangleShape_setFillColor(grid, sf.sfTransparent);
 
+        const font = sf.sfFont_createFromMemory(fontFile, fontFile.len);
+
+        const countText = sf.sfText_create(font);
+        sf.sfText_setFillColor(countText, sf.sfWhite);
+        const fpsText = sf.sfText_create(font);
+        sf.sfText_setFillColor(fpsText, sf.sfWhite);
+        sf.sfText_setPosition(fpsText, .{ .x = 450, .y = 0 });
+
+        const clock = sf.sfClock_create();
+
         return .{
             .window = window,
             .circleShape = ball,
             .backgroundShape = background,
             .gridShape = grid,
+            .font = font,
+            .countTextShape = countText,
+            .countText = undefined,
+            .fpsText = undefined,
+            .fpsTextShape = fpsText,
+            .frametimeClock = clock,
         };
     }
 
@@ -40,9 +65,13 @@ pub const Renderer = struct {
         sf.sfRectangleShape_destroy(self.gridShape);
         sf.sfCircleShape_destroy(self.backgroundShape);
         sf.sfCircleShape_destroy(self.circleShape);
+        sf.sfText_destroy(self.countTextShape);
+        sf.sfText_destroy(self.fpsTextShape);
+        sf.sfFont_destroy(self.font);
+        sf.sfClock_destroy(self.frametimeClock);
     }
 
-    pub fn render(self: Renderer, solver: *physics.Solver) void {
+    pub fn render(self: *Renderer, solver: *physics.Solver) !void {
         const window = self.window;
         // Clear the screen
         sf.sfRenderWindow_clear(window, sf.sfBlack);
@@ -57,15 +86,29 @@ pub const Renderer = struct {
             sf.sfRenderWindow_drawCircleShape(window, self.circleShape, null);
         }
 
-        // draws cell grid for debugging
-        // for (0..physics.CELL_COUNT) |x| {
-        //     for (0..physics.CELL_COUNT) |y| {
-        //         const xf: f32 = @floatFromInt(x * physics.CELL_SIZE);
-        //         const yf: f32 = @floatFromInt(y * physics.CELL_SIZE);
-        //         sf.sfRectangleShape_setPosition(self.gridShape, .{ .x = xf, .y = yf });
-        //         sf.sfRenderWindow_drawRectangleShape(window, self.gridShape, null);
-        //     }
-        // }
+        if (self.showDebug) {
+            const countText = try std.fmt.bufPrintZ(&self.countText, "count: {}", .{solver.balls.items.len});
+
+            sf.sfText_setString(self.countTextShape, countText);
+            sf.sfRenderWindow_drawText(window, self.countTextShape, null);
+
+            const elapsed = sf.sfClock_restart(self.frametimeClock);
+            const seconds = sf.sfTime_asSeconds(elapsed);
+
+            const fpsText = try std.fmt.bufPrintZ(&self.fpsText, "FPS: {d}", .{1 / seconds});
+
+            sf.sfText_setString(self.fpsTextShape, fpsText);
+            sf.sfRenderWindow_drawText(window, self.fpsTextShape, null);
+            // draws cell grid for debugging
+            // for (0..physics.CELL_COUNT) |x| {
+            //     for (0..physics.CELL_COUNT) |y| {
+            //         const xf: f32 = @floatFromInt(x * physics.CELL_SIZE);
+            //         const yf: f32 = @floatFromInt(y * physics.CELL_SIZE);
+            //         sf.sfRectangleShape_setPosition(self.gridShape, .{ .x = xf, .y = yf });
+            //         sf.sfRenderWindow_drawRectangleShape(window, self.gridShape, null);
+            //     }
+            // }
+        }
 
         // Update the window
         sf.sfRenderWindow_display(window);

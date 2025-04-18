@@ -28,7 +28,7 @@ pub fn main() !void {
     defer balls.deinit();
     var solver = physics.Solver.new(balls);
 
-    const renderer = render.Renderer.init(window);
+    var renderer = render.Renderer.init(window);
     defer renderer.deinit();
     var moving = false;
     var old_pos: sf.sfVector2f = undefined;
@@ -79,6 +79,14 @@ pub fn main() !void {
                     sf.sfView_zoom(view, 1.0 + event.mouseWheelScroll.delta * -0.1);
                     sf.sfRenderWindow_setView(window, view);
                 },
+                sf.sfEvtKeyPressed => {
+                    switch (event.key.scancode) {
+                        sf.sfKeyD => {
+                            renderer.showDebug = !renderer.showDebug;
+                        },
+                        else => {},
+                    }
+                },
                 else => {},
             }
         }
@@ -99,7 +107,7 @@ pub fn main() !void {
         }
 
         solver.update(1.0 / 60.0);
-        renderer.render(&solver);
+        try renderer.render(&solver);
     }
 
     return;
