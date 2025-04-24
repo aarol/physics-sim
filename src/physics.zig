@@ -9,7 +9,7 @@ pub const Ball = struct {
     acceleration: sf.Vec2 = .{ .x = 0, .y = 100 },
     color: sf.sfColor,
 
-    pub const radius: f32 = 3;
+    pub const radius: f32 = 2;
 
     pub fn new(curr_pos: sf.Vec2, last_pos: sf.Vec2, color: sf.sfColor) Ball {
         return .{
@@ -57,11 +57,20 @@ const Cell = struct {
 
 pub const Solver = struct {
     balls: std.ArrayList(Ball),
-    sub_steps: u32 = 8,
+    subSteps: u32 = 8,
     grid: [CELL_COUNT * CELL_COUNT]Cell = undefined,
+    threadpool: std.Thread.Pool,
 
-    pub fn new(balls: std.ArrayList(Ball)) Solver {
-        return .{ .balls = balls };
+    pub fn new(balls: std.ArrayList(Ball), alloc: std.mem.Allocator) !Solver {
+        var threadpool: std.Thread.Pool = undefined;
+        try std.Thread.Pool.init(&threadpool, .{
+            .allocator = alloc,
+        });
+
+        return .{
+            .balls = balls,
+            .threadpool = threadpool,
+        };
     }
 
     pub fn add_ball(self: *Solver, ball: Ball) !void {
@@ -89,12 +98,18 @@ pub const Solver = struct {
     }
 
     pub fn update(self: *Solver, dt: f32) void {
-        const sub_dt = dt / 8;
-        for (0..8) |_| {
+        const sub_dt = dt / @as(f32, @floatFromInt(self.subSteps));
+        for (0..self.subSteps) |_| {
             self.add_to_grid();
+
+            var wg: std.Thread.WaitGroup = .{};
+
             for (0..self.grid.len) |i| {
-                self.process_cell(@intCast(i));
+                self.threadpool.spawnWg(&wg, Solver.process_cell, .{ self, @as(u32, @intCast(i)) });
+                // self.process_cell(@intCast(i));
             }
+            self.threadpool.waitAndWork(&wg);
+
             for (self.balls.items) |*ball| {
                 ball.update(sub_dt);
             }
@@ -133,7 +148,9 @@ pub const Solver = struct {
         const c = self.grid[index];
         for (0..c.ball_count) |i| {
             const ball_idx = c.balls[i];
-            self.check_cell_collisions(ball_idx, index - 1);
+            if (index > 1) {
+                self.check_cell_collisions(ball_idx, index - 1);
+            }
             self.check_cell_collisions(ball_idx, index);
             self.check_cell_collisions(ball_idx, index + 1);
             self.check_cell_collisions(ball_idx, index + CELL_COUNT - 1);

@@ -26,7 +26,7 @@ pub fn main() !void {
 
     const balls = std.ArrayList(physics.Ball).init(std.heap.page_allocator);
     defer balls.deinit();
-    var solver = physics.Solver.new(balls);
+    var solver = try physics.Solver.new(balls, std.heap.page_allocator);
 
     var renderer = render.Renderer.init(window);
     defer renderer.deinit();
@@ -97,13 +97,12 @@ pub fn main() !void {
             const since_start = sf.sfClock_getElapsedTime(elapsed_clock);
             const seconds = sf.sfTime_asSeconds(since_start);
 
-            const pos = sf.Vec2{ .x = 0, .y = 0 };
-            const before_pos = sf.Vec2{ .x = 0.1, .y = -2 };
-            const color = render.hslToRgb(@mod(seconds / 50.0, 1.0), 0.75, 0.5);
-            try solver.add_ball(physics.Ball.new(pos.add(physics.CENTER), before_pos.add(physics.CENTER), color));
-            const pos2 = sf.Vec2{ .x = 10, .y = 0 };
-            const before_pos2 = sf.Vec2{ .x = 10.1, .y = -2 };
-            try solver.add_ball(physics.Ball.new(pos2.add(physics.CENTER), before_pos2.add(physics.CENTER), color));
+            for (0..5) |_| {
+                const pos = sf.Vec2{ .x = 0, .y = 0 };
+                const before_pos = sf.Vec2{ .x = 0.1, .y = -2 };
+                const color = render.hslToRgb(@mod(seconds / 50.0, 1.0), 0.75, 0.5);
+                try solver.add_ball(physics.Ball{ .color = color, .curr_pos = pos, .last_pos = before_pos });
+            }
         }
 
         solver.update(1.0 / 60.0);
