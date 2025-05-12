@@ -60,16 +60,20 @@ pub const Solver = struct {
     subSteps: u32 = 8,
     grid: [CELL_COUNT * CELL_COUNT]Cell = undefined,
     threadpool: std.Thread.Pool,
+    numThreads: usize,
 
     pub fn new(balls: std.ArrayList(Ball), alloc: std.mem.Allocator) !Solver {
         var threadpool: std.Thread.Pool = undefined;
+        const numThreads = try std.Thread.getCpuCount();
         try std.Thread.Pool.init(&threadpool, .{
             .allocator = alloc,
+            .n_jobs = numThreads,
         });
 
         return .{
             .balls = balls,
             .threadpool = threadpool,
+            .numThreads = numThreads,
         };
     }
 
@@ -104,11 +108,20 @@ pub const Solver = struct {
 
             var wg: std.Thread.WaitGroup = .{};
 
-            for (0..self.grid.len) |i| {
-                self.threadpool.spawnWg(&wg, Solver.process_cell, .{ self, @as(u32, @intCast(i)) });
-                // self.process_cell(@intCast(i));
+            const cellsPerThread = self.grid.len / self.numThreads;
+
+            for (0..self.numThreads) |i| {
+                const start = cellsPerThread * i;
+                const end = cellsPerThread * (i + 1);
+                self.threadpool.spawnWg(&wg, Solver.process_cell, .{ self, @as(u32, @intCast(start)), @as(u32, @intCast(end)) });
             }
             self.threadpool.waitAndWork(&wg);
+
+            for (0..self.numThreads) |i| {
+                const start = cellsPerThread * i;
+                const end = cellsPerThread * (i + 1);
+                self.threadpool.spawnWg(&wg, Solver.process_cell, .{ self, @as(u32, @intCast(start)), @as(u32, @intCast(end)) });
+            }
 
             for (self.balls.items) |*ball| {
                 ball.update(sub_dt);
@@ -144,22 +157,25 @@ pub const Solver = struct {
         }
     }
 
-    fn process_cell(self: *Solver, index: u32) void {
-        const c = self.grid[index];
-        for (0..c.ball_count) |i| {
-            const ball_idx = c.balls[i];
-            if (index > 1) {
-                self.check_cell_collisions(ball_idx, index - 1);
-            }
-            self.check_cell_collisions(ball_idx, index);
-            self.check_cell_collisions(ball_idx, index + 1);
-            self.check_cell_collisions(ball_idx, index + CELL_COUNT - 1);
-            self.check_cell_collisions(ball_idx, index + CELL_COUNT);
-            self.check_cell_collisions(ball_idx, index + CELL_COUNT + 1);
-            if (index > CELL_COUNT) {
-                self.check_cell_collisions(ball_idx, index - CELL_COUNT - 1);
-                self.check_cell_collisions(ball_idx, index - CELL_COUNT);
-                self.check_cell_collisions(ball_idx, index - CELL_COUNT + 1);
+    fn process_cell(self: *Solver, start: u32, end: u32) void {
+        for (start..end) |_index| {
+            const index = @as(u32, @intCast(_index));
+            const c = self.grid[index];
+            for (0..c.ball_count) |i| {
+                const ball_idx = c.balls[i];
+                if (index > 1) {
+                    self.check_cell_collisions(ball_idx, index - 1);
+                }
+                self.check_cell_collisions(ball_idx, index);
+                self.check_cell_collisions(ball_idx, index + 1);
+                self.check_cell_collisions(ball_idx, index + CELL_COUNT - 1);
+                self.check_cell_collisions(ball_idx, index + CELL_COUNT);
+                self.check_cell_collisions(ball_idx, index + CELL_COUNT + 1);
+                if (index > CELL_COUNT) {
+                    self.check_cell_collisions(ball_idx, index - CELL_COUNT - 1);
+                    self.check_cell_collisions(ball_idx, index - CELL_COUNT);
+                    self.check_cell_collisions(ball_idx, index - CELL_COUNT + 1);
+                }
             }
         }
     }
