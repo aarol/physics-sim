@@ -40,6 +40,10 @@
             .url = "git+https://github.com/judofyr/spice#407c7f660eb1fe4e23cce0fced585a176b7af814",
             .hash = "spice-0.0.0-3FtxfM67AADgcc5i5rJfewMfbutQY7DMTyNlZblzW-6p",
         },
+        .profiler = .{
+            .url = "git+https://github.com/reallyluckyy/profiler.zig#6b1009fd7d4d752e37d7e71ed2f1071ade5f42fc",
+            .hash = "profiler-0.1.0-vD-Nl6pnAADxqCTUzeVHJZl0Ny4OgO59FN55IINP3eaS",
+        },
     },
     .paths = .{
         "build.zig",

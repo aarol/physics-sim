@@ -6,10 +6,22 @@ const std = @import("std");
 
 const sf = @import("sfml.zig");
 
+const P = @import("profiler");
+
 const physics = @import("physics.zig");
 const render = @import("render.zig");
 
 pub fn main() !void {
+    try P.init(.{});
+
+    defer {
+        P.dump("profile.json") catch |err| std.log.err("profile dump failed: {}", .{err});
+        P.deinit();
+    }
+
+    const zone = P.begin(@src(), "main_fn");
+    defer zone.end();
+
     const mode = sf.sfVideoMode{
         .size = physics.WORLD_SIZE,
         .bitsPerPixel = 32,
@@ -105,8 +117,12 @@ pub fn main() !void {
             }
         }
 
+        const update_zone = P.begin(@src(), "update");
         solver.update(1.0 / 60.0);
+        update_zone.end();
+        const render_zone = P.begin(@src(), "render");
         try renderer.render(&solver);
+        render_zone.end();
     }
 
     return;

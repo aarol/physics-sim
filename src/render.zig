@@ -7,7 +7,7 @@ const circleFile = @embedFile("res/circle.png");
 
 pub const Renderer = struct {
     window: ?*sf.sfRenderWindow,
-    circleShape: ?*sf.sfImage,
+    circleShape: ?*sf.sfCircleShape,
     gridShape: ?*sf.sfRectangleShape,
     backgroundShape: ?*sf.sfCircleShape,
     font: ?*sf.sfFont,
@@ -26,8 +26,7 @@ pub const Renderer = struct {
         sf.sfCircleShape_setOrigin(background, .{ .x = physics.CONSTRAINT_RADIUS, .y = physics.CONSTRAINT_RADIUS });
         sf.sfCircleShape_setPosition(background, @bitCast(physics.CENTER));
 
-        const ball = sf.sfImage_createFromMemory(circleFile, circleFile.len);
-
+        const ball = sf.sfCircleShape_create();
         sf.sfCircleShape_setFillColor(ball, sf.sfWhite);
         sf.sfCircleShape_setPointCount(ball, 32);
         sf.sfCircleShape_setRadius(ball, physics.Ball.radius);

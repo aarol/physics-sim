@@ -55,11 +55,20 @@ pub fn build(b: *std.Build) void {
     exe.linkSystemLibrary("csfml-system");
     exe.linkSystemLibrary("csfml-window");
 
+    const use_profiler = b.option(bool, "enable_profiling", "Enable Profiler") orelse true;
+
+    const profiler = b.dependency("profiler", .{
+        .target = target,
+        .optimize = optimize,
+        .enable_profiling = use_profiler,
+    });
+
     const spice = b.dependency("spice", .{
         .target = target,
         .optimize = optimize,
     });
 
+    exe.root_module.addImport("profiler", profiler.module("profiler"));
     exe.root_module.addImport("spice", spice.module("spice"));
 
     // This declares intent for the executable to be installed into the
